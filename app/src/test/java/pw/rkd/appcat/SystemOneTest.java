@@ -21,4 +21,15 @@ public class SystemOneTest {
     @Test(expected=IllegalArgumentException.class) public void rejectsCleartextKeyTransport(){SystemOne.validateUrl("http://example.com/systemone");}
     @Test(expected=IllegalArgumentException.class) public void rejectsEmbeddedCredentials(){SystemOne.validateUrl("https://key@example.com/systemone");}
     @Test public void acceptsCustomHttpsEndpoint(){SystemOne.validateUrl("https://example.com/custom/systemone");}
+    @Test public void excludesOtherFromFinalWireRequest() throws Exception {
+        var request=SystemOne.request("model","test.app","Test",Map.of("other","Other","tools","Tools"));
+        var criteria=request.getJSONObject("questions").getJSONObject("category").getJSONObject("criteria");
+        assertFalse(criteria.has("other"));assertTrue(criteria.has("tools"));
+        assertFalse(request.getJSONObject("questions").getJSONObject("category").getString("instructions").contains("choose Other"));
+    }
+    @Test public void includesAppDescriptionContext() throws Exception {
+        var context=new JSONObject().put("google_play",new JSONObject().put("description","Mobile banking and card payments"));
+        var request=SystemOne.request("model","test.app","Test",Map.of("finance","Finance"),context);
+        assertEquals("Mobile banking and card payments",new JSONObject(request.getString("state")).getJSONObject("app_context").getJSONObject("google_play").getString("description"));
+    }
 }

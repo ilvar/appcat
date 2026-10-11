@@ -9,6 +9,15 @@ import android.view.*;
 import android.widget.*;
 
 public final class BubbleService extends Service {
+    private HomeScreenMonitor homeMonitor;
+    private final Runnable visibilityTick=new Runnable(){public void run(){
+        if(bubble!=null){boolean homeOnly=getSharedPreferences("settings",0).getBoolean("homeOnly",false);boolean visible;
+            try{visible=!homeOnly||homeMonitor.isHome();}catch(Exception e){visible=!homeOnly;}
+            bubble.setVisibility(visible?View.VISIBLE:View.GONE);
+            if(!visible){handler.removeCallbacks(longPress);closePicker();}
+        }
+        handler.postDelayed(this,750);
+    }};
     private WindowManager wm;
     private TextView bubble;
     private View panel;
@@ -25,11 +34,12 @@ public final class BubbleService extends Service {
         PendingIntent open=PendingIntent.getActivity(this,0,new Intent(this,MainActivity.class),PendingIntent.FLAG_IMMUTABLE);
         startForeground(1,new Notification.Builder(this,"bubble").setSmallIcon(R.drawable.ic_appcat).setContentTitle("AppCat floating button").setContentText("Long press the circle to choose a category").setContentIntent(open).addAction(new Notification.Action.Builder(null,"Stop",stop).build()).build());
         if(bubble==null)try{addBubble();}catch(Exception e){stopSelf();return START_NOT_STICKY;}
+        if(homeMonitor==null)homeMonitor=new HomeScreenMonitor(this);handler.removeCallbacks(visibilityTick);visibilityTick.run();
         return START_STICKY;
     }
     private WindowManager.LayoutParams layout(int w,int h){return new WindowManager.LayoutParams(w,h,WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,android.graphics.PixelFormat.TRANSLUCENT);}
     private void addBubble(){
-        wm=getSystemService(WindowManager.class);bubble=new TextView(this);bubble.setText("▦");bubble.setTextSize(26);bubble.setTextColor(Color.WHITE);bubble.setGravity(Gravity.CENTER);bubble.setContentDescription("AppCat categories. Long press to choose; drag to move.");bubble.setBackground(Ui.rounded(0xE6536DFE,Ui.dp(this,28)));
+        wm=getSystemService(WindowManager.class);bubble=new TextView(this);bubble.setText("");bubble.setCompoundDrawablesWithIntrinsicBounds(0,R.drawable.ic_apps,0,0);bubble.setCompoundDrawableTintList(android.content.res.ColorStateList.valueOf(Color.WHITE));bubble.setPadding(0,Ui.dp(this,14),0,0);bubble.setTextSize(26);bubble.setTextColor(Color.WHITE);bubble.setGravity(Gravity.CENTER);bubble.setContentDescription("AppCat categories. Long press to choose; drag to move.");bubble.setBackground(Ui.rounded(0xE6536DFE,Ui.dp(this,28)));
         params=layout(Ui.dp(this,52),Ui.dp(this,52));params.gravity=Gravity.TOP|Gravity.LEFT;
         var p=getSharedPreferences("settings",0);params.x=p.getInt("bubbleX",getResources().getDisplayMetrics().widthPixels-Ui.dp(this,56));params.y=p.getInt("bubbleY",Ui.dp(this,250));clamp();
         bubble.setOnClickListener(v->openPicker(null));bubble.setOnLongClickListener(v->{openPicker(null);return true;});
@@ -43,20 +53,21 @@ public final class BubbleService extends Service {
                     handler.removeCallbacks(longPress);if(!dragged&&!longPressed)v.performClick();if(dragged){params.x=params.x<getResources().getDisplayMetrics().widthPixels/2?0:getResources().getDisplayMetrics().widthPixels-params.width;wm.updateViewLayout(bubble,params);getSharedPreferences("settings",0).edit().putInt("bubbleX",params.x).putInt("bubbleY",params.y).apply();}return true;
                 case MotionEvent.ACTION_CANCEL:handler.removeCallbacks(longPress);return true;
             }return false;
-        });wm.addView(bubble,params);
+        });if(getSharedPreferences("settings",0).getBoolean("homeOnly",false))bubble.setVisibility(View.GONE);wm.addView(bubble,params);
     }
     private void clamp(){params.x=Math.max(0,Math.min(params.x,getResources().getDisplayMetrics().widthPixels-params.width));params.y=Math.max(Ui.dp(this,32),Math.min(params.y,getResources().getDisplayMetrics().heightPixels-Ui.dp(this,100)));}
     private void closePicker(){if(panel!=null){wm.removeView(panel);panel=null;}}
     private void openPicker(String category){
-        closePicker();Catalog catalog=new Catalog(this);var apps=catalog.scan();LinearLayout card=Ui.column(this);card.setBackground(Ui.rounded(Color.WHITE,Ui.dp(this,18)));ScrollView scroll=new ScrollView(this);scroll.addView(card);panel=scroll;
-        card.addView(Ui.text(this,category==null?"Categories":catalog.categoryName(category),22));card.addView(Ui.button(this,"Close",this::closePicker));
+        closePicker();Catalog catalog=new Catalog(this);var apps=catalog.scan();LinearLayout card=Ui.column(this);card.setBackground(Ui.rounded(com.google.android.material.color.MaterialColors.getColor(this,com.google.android.material.R.attr.colorSurface,Color.WHITE),Ui.dp(this,18)));ScrollView scroll=new ScrollView(this);scroll.addView(card);panel=scroll;
+        Ui.pickerHeader(this,card,category==null?"Categories":catalog.categoryName(category),this::closePicker);
         if(category==null){
-            for(var cat:catalog.categories()){long n=apps.stream().filter(a->a.category().equals(cat.id())).count();card.addView(Ui.button(this,cat.name()+" · "+n,()->openPicker(cat.id())));}
-            long n=apps.stream().filter(a->a.category().isEmpty()).count();if(n>0)card.addView(Ui.button(this,"Uncategorised · "+n,()->openPicker("")));
+            Ui.categoryGrid(this,card,catalog,apps,this::openPicker);
         }else{
             card.addView(Ui.button(this,"‹ Categories",()->openPicker(null)));
             if(apps.stream().noneMatch(a->a.category().equals(category)))card.addView(Ui.text(this,"No apps in this category yet",16));
-            for(var app:apps)if(app.category().equals(category))card.addView(Ui.button(this,app.name(),()->{closePicker();Ui.launch(this,app.pkg());}));
+            java.util.List<Catalog.App> members=new java.util.ArrayList<>();
+            for(var app:apps)if(app.category().equals(category))members.add(app);
+            Ui.appGrid(this,card,members,app->{closePicker();Ui.launch(this,app.pkg());});
         }
         var lp=layout(Math.min(Ui.dp(this,340),getResources().getDisplayMetrics().widthPixels-Ui.dp(this,24)),Math.min(Ui.dp(this,520),getResources().getDisplayMetrics().heightPixels-Ui.dp(this,120)));lp.gravity=Gravity.CENTER;wm.addView(panel,lp);
     }

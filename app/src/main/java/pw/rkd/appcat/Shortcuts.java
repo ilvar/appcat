@@ -10,7 +10,7 @@ final class Shortcuts {
     static ShortcutInfo info(Context c,Catalog.Category category){
         Bitmap bitmap=Bitmap.createBitmap(192,192,Bitmap.Config.ARGB_8888);Canvas canvas=new Canvas(bitmap);Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);
         p.setColor(Color.rgb(83,109,254));canvas.drawCircle(96,96,90,p);p.setColor(Color.WHITE);p.setTextSize(68);p.setTextAlign(Paint.Align.CENTER);
-        String name=category.name();String letter=name.substring(0,name.offsetByCodePoints(0,1)).toUpperCase(Locale.ROOT);canvas.drawText(letter,96,120,p);
+        String name=category.name();android.graphics.drawable.Drawable symbol=CategoryIcons.drawable(c,category.icon()).mutate();symbol.setTint(Color.WHITE);symbol.setBounds(48,48,144,144);symbol.draw(canvas);
         Intent intent=new Intent(c,CategoryActivity.class).setAction(Intent.ACTION_VIEW).putExtra("category",category.id());
         return new ShortcutInfo.Builder(c,"category:"+category.id()).setShortLabel(name).setIcon(Icon.createWithBitmap(bitmap)).setIntent(intent).build();
     }
