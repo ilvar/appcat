@@ -40,7 +40,7 @@ public final class MainActivity extends androidx.appcompat.app.AppCompatActivity
         classify=Ui.button(this,Classifier.INSTANCE.running?"Stop categorisation":"Categorise missing apps",()->{if(Classifier.INSTANCE.running)Classifier.INSTANCE.cancel();else{Classifier.INSTANCE.start(this);render();}});
         if(unknown>0||Classifier.INSTANCE.running)header.addView(classify);
         status=Ui.text(this,Classifier.INSTANCE.status,14);status.setVisibility(Classifier.INSTANCE.status.isEmpty()?android.view.View.GONE:android.view.View.VISIBLE);header.addView(status);
-        if(getSharedPreferences("settings",0).getBoolean("homeOnly",false)&&!HomeScreenMonitor.hasAccess(this))header.addView(Ui.button(this,"Grant Usage Access for home-only button",()->startActivity(new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))));
+        if(getSharedPreferences("settings",0).getBoolean("bubble",false)&&getSharedPreferences("settings",0).getBoolean("homeOnly",false)&&!HomeScreenMonitor.hasAccess(this))header.addView(Ui.button(this,"Grant Usage Access for home-only button",()->startActivity(new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))));
         ScrollView scroll=new ScrollView(this);root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));content=Ui.column(this);scroll.addView(content);populate(apps,unknown);
         filter.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int st,int n,int a){}public void onTextChanged(CharSequence s,int st,int before,int count){search=s.toString();populate(apps,unknown);}public void afterTextChanged(Editable e){}});
     }
@@ -117,7 +117,7 @@ public final class MainActivity extends androidx.appcompat.app.AppCompatActivity
             }catch(Exception e){Ui.toast(this,e.getMessage()==null?"Could not save settings":e.getMessage());}
         }));dialog.show();
     }
-    @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(request==2&&Settings.canDrawOverlays(this))enableBubble();}
+    @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if((request==2&&Settings.canDrawOverlays(this))||(request==3&&HomeScreenMonitor.hasAccess(this)))enableBubble();}
     private void enableBubble(){
         if(!Settings.canDrawOverlays(this)){startActivityForResult(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,Uri.parse("package:"+getPackageName())),2);return;}
         if(getSharedPreferences("settings",0).getBoolean("homeOnly",false)&&!HomeScreenMonitor.hasAccess(this)){startActivityForResult(new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS),3);return;}

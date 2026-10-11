@@ -19,7 +19,7 @@ public final class BubbleService extends Service {
         handler.postDelayed(this,750);
     }};
     private WindowManager wm;
-    private TextView bubble;
+    private ImageButton bubble;
     private View panel;
     private WindowManager.LayoutParams params;
     private final Handler handler=new Handler(Looper.getMainLooper());
@@ -39,7 +39,7 @@ public final class BubbleService extends Service {
     }
     private WindowManager.LayoutParams layout(int w,int h){return new WindowManager.LayoutParams(w,h,WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,android.graphics.PixelFormat.TRANSLUCENT);}
     private void addBubble(){
-        wm=getSystemService(WindowManager.class);bubble=new TextView(this);bubble.setText("");bubble.setCompoundDrawablesWithIntrinsicBounds(0,R.drawable.ic_apps,0,0);bubble.setCompoundDrawableTintList(android.content.res.ColorStateList.valueOf(Color.WHITE));bubble.setPadding(0,Ui.dp(this,14),0,0);bubble.setTextSize(26);bubble.setTextColor(Color.WHITE);bubble.setGravity(Gravity.CENTER);bubble.setContentDescription("AppCat categories. Long press to choose; drag to move.");bubble.setBackground(Ui.rounded(0xE6536DFE,Ui.dp(this,28)));
+        wm=getSystemService(WindowManager.class);bubble=new ImageButton(this);bubble.setImageResource(R.drawable.ic_apps);bubble.setImageTintList(android.content.res.ColorStateList.valueOf(Color.WHITE));bubble.setPadding(Ui.dp(this,14),Ui.dp(this,14),Ui.dp(this,14),Ui.dp(this,14));bubble.setContentDescription("AppCat categories. Long press to choose; drag to move.");bubble.setBackground(new android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(0x40FFFFFF),Ui.rounded(0xE6536DFE,Ui.dp(this,28)),Ui.rounded(Color.WHITE,Ui.dp(this,28))));
         params=layout(Ui.dp(this,52),Ui.dp(this,52));params.gravity=Gravity.TOP|Gravity.LEFT;
         var p=getSharedPreferences("settings",0);params.x=p.getInt("bubbleX",getResources().getDisplayMetrics().widthPixels-Ui.dp(this,56));params.y=p.getInt("bubbleY",Ui.dp(this,250));clamp();
         bubble.setOnClickListener(v->openPicker(null));bubble.setOnLongClickListener(v->{openPicker(null);return true;});
