@@ -54,3 +54,9 @@ Bundled vectors are Google Material Icons Rounded, converted from the official [
 Settings → Export JSON backup writes a portable, versioned JSON file through Android’s document picker. It includes the endpoint/model, API key, lookup and floating-button preferences/position, category names/icons and all saved package mappings (including explicit unassigned/reset records and apps no longer installed). Save pending settings edits before exporting.
 
 **The exported API key is plaintext. Keep the file private.** Import re-encrypts the key with Android Keystore on the destination device. Settings → Import JSON backup validates the complete file and asks before replacing the saved settings, categories and mappings. Stop categorisation before either operation. Backups are limited to 5 MB. Android permissions, description caches and launcher shortcut placement are not transferred; existing shortcuts are refreshed or disabled if their category was removed.
+
+### Hide apps
+
+On the Apps tab, tap an app’s action icon (or long press its row), then **Hide app**. Hidden apps keep their mappings but disappear from AppCat lists, category counts and both popup launchers. They are skipped during categorisation/reclassification, and hiding an app blocks any pending AI assignment. This hides apps within AppCat; other launchers are unaffected.
+
+Use **Settings → Hidden apps** to restore selected apps or show all. Hidden package IDs survive rescans/reinstalls and assignment resets, including entries for uninstalled apps. JSON backups preserve them; importing an older backup without `hiddenApps` restores an empty hidden list.

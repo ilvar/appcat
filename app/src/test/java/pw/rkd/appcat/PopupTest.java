@@ -50,5 +50,12 @@ public class PopupTest {
             var insets=new androidx.core.view.WindowInsetsCompat.Builder().setInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars(),androidx.core.graphics.Insets.of(0,24,0,48)).build();
             androidx.core.view.ViewCompat.dispatchApplyWindowInsets(root,insets);assertEquals(24,root.getPaddingTop());assertEquals(48,root.getPaddingBottom());}
     }
+    @Test public void hiddenAppsAreAbsentFromCategoryAndAppPopupGrids(){
+        ApplicationInfo ai=new ApplicationInfo();ai.packageName="test.hidden";ai.nonLocalizedLabel="Hidden";ActivityInfo activity=new ActivityInfo();activity.applicationInfo=ai;activity.packageName=ai.packageName;activity.name="Main";ResolveInfo resolve=new ResolveInfo();resolve.activityInfo=activity;
+        shadowOf(context.getPackageManager()).addResolveInfoForIntent(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER),resolve);
+        Catalog catalog=new Catalog(context);catalog.assign(ai.packageName,"c0","Manual");catalog.setHidden(ai.packageName,true);Context popup=PopupTheme.context(context);LinearLayout parent=Ui.column(popup);
+        Ui.categoryGrid(popup,parent,catalog,catalog.scan(),id->{});GridLayout categories=(GridLayout)parent.getChildAt(0);TextView games=(TextView)((LinearLayout)categories.getChildAt(0)).getChildAt(1);assertEquals("Games · 0",games.getText().toString());
+        LinearLayout apps=Ui.column(popup);Ui.appGrid(popup,apps,catalog.scan(),app->{});assertEquals(0,((GridLayout)apps.getChildAt(0)).getChildCount());
+    }
     private void measure(View view,int width){view.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(0,View.MeasureSpec.UNSPECIFIED));}
 }

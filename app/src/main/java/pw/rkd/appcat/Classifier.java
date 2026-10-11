@@ -29,6 +29,7 @@ final class Classifier {
                 int done=0, skipped=0, enriched=0;
                 for(var app:pending){
                     if(Thread.currentThread().isInterrupted())throw new InterruptedException();
+                    if(catalog.isHidden(app.pkg())){skipped++;continue;}
                     update("Categorising "+(done+1)+" / "+pending.size()+": "+app.name());
                     var appContext=AppContext.load(c,app);
                     if(appContext.has("google_play")||appContext.has("android_description"))enriched++;
@@ -36,7 +37,7 @@ final class Classifier {
                     if(Thread.currentThread().isInterrupted())throw new InterruptedException();
                     if(catalog.assignAiIfUnchanged(app,choice))done++;else skipped++;
                 }
-                running=false;update("Done. "+done+" apps categorised; "+enriched+" had descriptions."+(skipped>0?" "+skipped+" edited apps left unchanged.":""));
+                running=false;update("Done. "+done+" apps categorised; "+enriched+" had descriptions."+(skipped>0?" "+skipped+" edited or hidden apps left unchanged.":""));
             }catch(InterruptedException e){Thread.currentThread().interrupt();running=false;update("Stopped. Completed categories are saved.");}
             catch(Exception e){running=false;update(e.getMessage()==null?"Categorisation failed. Retry to resume.":e.getMessage());}
         });

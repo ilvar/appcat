@@ -5,8 +5,12 @@ import android.os.Bundle;
 import android.widget.*;
 
 public final class CategoryActivity extends androidx.appcompat.app.AppCompatActivity {
-    @Override public void onCreate(Bundle state){setTheme(PopupTheme.activityStyle(this));super.onCreate(state);show(getIntent().getStringExtra("category"));}
+    private String currentCategory;
+    @Override protected void onResume(){super.onResume();show(currentCategory);}
+    @Override protected void onSaveInstanceState(Bundle state){state.putString("category",currentCategory);super.onSaveInstanceState(state);}
+    @Override public void onCreate(Bundle state){setTheme(PopupTheme.activityStyle(this));super.onCreate(state);show(state==null?getIntent().getStringExtra("category"):state.getString("category"));}
     private void show(String id){
+        currentCategory=id;
         Catalog catalog=new Catalog(this);var apps=catalog.scan();ScrollView scroll=new ScrollView(this);android.content.Context popup=PopupTheme.context(this);LinearLayout list=Ui.column(popup);scroll.addView(list);setContentView(scroll);
         Ui.pickerHeader(popup,list,id==null?"Categories":catalog.categoryName(id),this::finish);
         if(id==null){

@@ -8,9 +8,9 @@ import java.util.*;
 /** Portable, versioned backup. The API key is plaintext in the file, encrypted on device. */
 final class Backup {
     static final int MAX_BYTES=5*1024*1024;
-    record Data(JSONObject settings, JSONArray categories, JSONObject mappings) {}
+    record Data(JSONObject settings, JSONArray categories, JSONObject mappings, Set<String> hidden) {}
     static String export(Context context) throws Exception {
-        Catalog catalog=new Catalog(context);var apps=catalog.scan();
+        Catalog catalog=new Catalog(context);var apps=catalog.scanAll();
         var prefs=context.getSharedPreferences("settings",0);
         JSONObject settings=new JSONObject().put("apiKey",KeyStore.read(context))
                 .put("url",prefs.getString("url",SystemOne.DEFAULT_URL)).put("model",prefs.getString("model",SystemOne.DEFAULT_MODEL))
@@ -22,7 +22,7 @@ final class Backup {
             mappings.put(entry.getKey().substring(4),Catalog.json("category",saved.getString("category"),"source",saved.getString("source")));
         }
         for(var app:apps)if(!mappings.has(app.pkg()))mappings.put(app.pkg(),Catalog.json("category",app.category(),"source",app.source()));
-        return new JSONObject().put("format","appcat").put("version",1).put("settings",settings).put("categories",categories).put("mappings",mappings).toString(2);
+        return new JSONObject().put("format","appcat").put("version",1).put("settings",settings).put("categories",categories).put("mappings",mappings).put("hiddenApps",new JSONArray(new TreeSet<>(catalog.hiddenPackages()))).toString(2);
     }
     static Data parse(String json) throws Exception {
         JSONObject root=new JSONObject(json);
@@ -52,7 +52,10 @@ final class Backup {
             if(!Set.of("Android","Manual","AI","Reset","Uncategorised").contains(source))throw new IllegalArgumentException("Unknown assignment source");
             mappings.put(pkg,Catalog.json("category",category,"source",source).put("revision",1));
         }
-        return new Data(settings,categories,mappings);
+        Set<String> hidden=new HashSet<>();JSONArray hiddenApps=root.has("hiddenApps")?root.getJSONArray("hiddenApps"):new JSONArray();
+        if(hiddenApps.length()>20000)throw new IllegalArgumentException("Too many hidden apps");
+        for(int i=0;i<hiddenApps.length();i++){Object value=hiddenApps.get(i);if(!(value instanceof String))throw new IllegalArgumentException("Invalid hidden package ID");String pkg=(String)value;if(!pkg.matches("[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z0-9_]+)*")||pkg.length()>255||!hidden.add(pkg))throw new IllegalArgumentException("Invalid or duplicate hidden package ID");}
+        return new Data(settings,categories,mappings,hidden);
     }
     private static String string(JSONObject object,String key) throws Exception {Object value=object.get(key);if(!(value instanceof String))throw new IllegalArgumentException("Expected text: "+key);return (String)value;}
     static void apply(Context context,Data data) throws Exception {
@@ -62,7 +65,7 @@ final class Backup {
         Map<String,?> oldSettings=settings.getAll(),oldCatalog=catalog.getAll(),oldSecrets=secrets.getAll();
         try {
             KeyStore.save(context,data.settings.getString("apiKey"));
-            SharedPreferences.Editor editor=catalog.edit().clear().putString("categories",data.categories.toString());
+            SharedPreferences.Editor editor=catalog.edit().clear().putString("categories",data.categories.toString()).putStringSet("hidden",data.hidden);
             for(Iterator<String> keys=data.mappings.keys();keys.hasNext();){String pkg=keys.next();editor.putString("app:"+pkg,data.mappings.getJSONObject(pkg).toString());}
             if(!editor.commit())throw new IllegalStateException("Could not save app mappings");
             editor=settings.edit();for(String key:List.of("url","model","popupTheme"))editor.putString(key,data.settings.getString(key));
@@ -71,5 +74,5 @@ final class Backup {
             if(!editor.commit())throw new IllegalStateException("Could not save settings");
         }catch(Exception error){restore(catalog,oldCatalog);restore(settings,oldSettings);restore(secrets,oldSecrets);throw error;}
     }
-    private static void restore(SharedPreferences prefs,Map<String,?> values){var editor=prefs.edit().clear();for(var item:values.entrySet()){Object v=item.getValue();if(v instanceof String)editor.putString(item.getKey(),(String)v);else if(v instanceof Boolean)editor.putBoolean(item.getKey(),(Boolean)v);else if(v instanceof Integer)editor.putInt(item.getKey(),(Integer)v);}editor.commit();}
+    private static void restore(SharedPreferences prefs,Map<String,?> values){var editor=prefs.edit().clear();for(var item:values.entrySet()){Object v=item.getValue();if(v instanceof String)editor.putString(item.getKey(),(String)v);else if(v instanceof Boolean)editor.putBoolean(item.getKey(),(Boolean)v);else if(v instanceof Integer)editor.putInt(item.getKey(),(Integer)v);else if(v instanceof Set){Set<String> strings=new HashSet<>();for(Object entry:(Set<?>)v)strings.add((String)entry);editor.putStringSet(item.getKey(),strings);}}editor.commit();}
 }

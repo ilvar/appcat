@@ -47,7 +47,7 @@ public final class MainActivity extends androidx.appcompat.app.AppCompatActivity
     }
     private void populate(List<Catalog.App> apps,long unknown){
         content.removeAllViews();String query=search.toLowerCase(Locale.ROOT);
-        if(allApps){for(var app:apps)if((app.name()+" "+app.pkg()+" "+catalog.categoryName(app.category())).toLowerCase(Locale.ROOT).contains(query))Ui.appRow(this,content,app,()->assignDialog(app));}
+        if(allApps){for(var app:apps)if((app.name()+" "+app.pkg()+" "+catalog.categoryName(app.category())).toLowerCase(Locale.ROOT).contains(query))Ui.appRow(this,content,app,()->appActions(app));}
         else {
             if(unknown>0)content.addView(Ui.text(this,"Categorise or manually assign the remaining apps to enable home-screen shortcuts.",14));
             for(var cat:catalog.categories()) {
@@ -82,6 +82,22 @@ public final class MainActivity extends androidx.appcompat.app.AppCompatActivity
                 .setMessage("Clear all manual, Android and AI assignments. Categories, shortcuts and settings stay. Apps remain uncategorised until you assign them or run AI; Android categories will not be reimported.")
                 .setNegativeButton("Cancel",null).setPositiveButton("Reset all",(d,n)->{catalog.resetApps();Classifier.INSTANCE.status="All app assignments reset. Tap Categorise missing apps to run AI for every app.";render();}).show();
     }
+    private void appActions(Catalog.App app){
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this).setTitle(app.name()).setItems(new String[]{"Change category","Hide app"},(d,n)->{
+            if(n==0)assignDialog(app);else{catalog.setHidden(app.pkg(),true);render();Ui.toast(this,"App hidden. Restore it in Settings → Hidden apps.");}
+        }).show();
+    }
+    private void hiddenApps(){
+        var hidden=catalog.hiddenPackages();if(hidden.isEmpty()){Ui.toast(this,"No hidden apps");return;}
+        Map<String,String> labels=new HashMap<>();for(var app:catalog.scanAll())labels.put(app.pkg(),app.name());
+        List<String> packages=new ArrayList<>(hidden);packages.sort(Comparator.comparing(pkg->labels.getOrDefault(pkg,pkg),String.CASE_INSENSITIVE_ORDER));
+        String[] names=new String[packages.size()];for(int i=0;i<names.length;i++){String pkg=packages.get(i);names[i]=labels.containsKey(pkg)?labels.get(pkg)+"\n"+pkg:pkg+" (not installed)";}
+        Set<String> restore=new HashSet<>();
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this).setTitle("Hidden apps — select to restore")
+            .setMultiChoiceItems(names,new boolean[names.length],(d,n,checked)->{if(checked)restore.add(packages.get(n));else restore.remove(packages.get(n));})
+            .setNegativeButton("Cancel",null).setNeutralButton("Show all",(d,n)->{for(String pkg:packages)catalog.setHidden(pkg,false);render();})
+            .setPositiveButton("Restore",(d,n)->{for(String pkg:restore)catalog.setHidden(pkg,false);render();}).show();
+    }
     private void assignDialog(Catalog.App app){
         var cats=catalog.categories();String[] names=new String[cats.size()+2];names[0]="Uncategorised";for(int i=0;i<cats.size();i++)names[i+1]=cats.get(i).name();names[names.length-1]="+ New category";
         new com.google.android.material.dialog.MaterialAlertDialogBuilder(this).setTitle(app.name()).setItems(names,(d,n)->{
@@ -97,6 +113,8 @@ public final class MainActivity extends androidx.appcompat.app.AppCompatActivity
     private void settings(){
         var p=getSharedPreferences("settings",0);LinearLayout form=Ui.column(this);ScrollView scroll=new ScrollView(this);scroll.addView(form);
         form.addView(Ui.text(this,"System One receives app names, package IDs and available Android/Google Play descriptions. Requests use your account credit. Other is excluded from classifier choices.",14));
+        form.addView(Ui.button(this,"Hidden apps ("+catalog.hiddenPackages().size()+")",()->{dialogDismissSettings();hiddenApps();}));
+        form.addView(Ui.text(this,"Hide apps from the Apps tab’s action menu. Hidden apps keep their category but are excluded from lists, category grids/counts and AI categorisation.",14));
         form.addView(Ui.text(this,"API key",14));EditText key=Ui.input(this,"API key","");key.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD);try{key.setText(KeyStore.read(this));}catch(Exception e){Ui.toast(this,"Stored key unavailable. Enter it again.");}form.addView(key);
         form.addView(Ui.text(this,"Full System One endpoint (HTTPS)",14));EditText url=Ui.input(this,"Endpoint",p.getString("url",SystemOne.DEFAULT_URL));url.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_URI);form.addView(url);
         form.addView(Ui.text(this,"System One model",14));EditText model=Ui.input(this,"Model",p.getString("model",SystemOne.DEFAULT_MODEL));form.addView(model);

@@ -44,4 +44,17 @@ public class CatalogTest {
     @Test public void missingDefaultCategoryAfterImportDoesNotBreakAndroidScan() {
         context.getSharedPreferences("catalog",0).edit().clear().putString("categories","[{\"id\":\"custom\",\"name\":\"Custom\",\"icon\":\"folder\"}]").commit();assertEquals("",new Catalog(context).scan().get(0).category());
     }
+    @Test public void hiddenAppsStayHiddenAcrossScanRenameAndRestartAndKeepAssignment(){
+        catalog.assign("test.finance","c12","Manual");catalog.setHidden("test.finance",true);catalog.saveCategory("c12","Money");
+        Catalog reopened=new Catalog(context);assertTrue(reopened.scan().isEmpty());assertEquals("c12",reopened.scanAll().get(0).category());assertEquals("Manual",reopened.scanAll().get(0).source());
+        reopened.setHidden("test.finance",false);assertEquals("c12",reopened.scan().get(0).category());assertFalse(reopened.isHidden("test.finance"));
+    }
+    @Test public void hiddenAppsDoNotAcceptAnInflightAiResult(){var snapshot=catalog.scan().get(0);catalog.setHidden(snapshot.pkg(),true);assertFalse(catalog.assignAiIfUnchanged(snapshot,"c12"));assertEquals("c7",catalog.scanAll().get(0).category());}
+    @Test public void resetAssignmentsDoesNotUnhideApps(){catalog.setHidden("test.finance",true);catalog.resetApps();assertTrue(catalog.scan().isEmpty());assertEquals("",catalog.scanAll().get(0).category());assertTrue(catalog.isHidden("test.finance"));}
+    @Test public void backupRestoresHiddenInstalledAndUninstalledPackages() throws Exception {
+        context.getSharedPreferences("secrets",0).edit().clear().commit();context.getSharedPreferences("settings",0).edit().clear().commit();
+        catalog.assign("test.finance","c12","Manual");catalog.setHidden("test.finance",true);catalog.setHidden("com.uninstalled.app",true);
+        var backup=Backup.parse(Backup.export(context));assertEquals(2,backup.hidden().size());assertEquals("c12",backup.mappings().getJSONObject("test.finance").getString("category"));catalog.setHidden("test.finance",false);
+        Backup.apply(context,backup);Catalog reopened=new Catalog(context);assertTrue(reopened.scan().isEmpty());assertTrue(reopened.isHidden("com.uninstalled.app"));reopened.setHidden("test.finance",false);assertEquals("c12",reopened.scan().get(0).category());
+    }
 }

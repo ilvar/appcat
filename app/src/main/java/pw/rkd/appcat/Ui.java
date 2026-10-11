@@ -85,6 +85,6 @@ final class Ui {
         row.addView(icon,new LinearLayout.LayoutParams(dp(a,40),dp(a,40)));
         LinearLayout labels=new LinearLayout(a);labels.setOrientation(LinearLayout.VERTICAL);labels.setPadding(dp(a,16),0,dp(a,8),0);TextView name=text(a,app.name(),16);name.setPadding(0,0,0,0);labels.addView(name);TextView category=text(a,new Catalog(a).categoryName(app.category())+" · "+app.source(),12);category.setPadding(0,dp(a,4),0,0);labels.addView(category);
         row.addView(labels,new LinearLayout.LayoutParams(0,-2,1));row.setOnClickListener(v->launch(a,app.pkg()));row.setOnLongClickListener(v->{if(edit!=null)edit.run();return true;});
-        if(edit!=null)row.addView(iconButton(a,R.drawable.ic_more_vert,"Change category for "+app.name(),edit),new LinearLayout.LayoutParams(dp(a,48),dp(a,48)));list.addView(row);
+        if(edit!=null)row.addView(iconButton(a,R.drawable.ic_more_vert,"Actions for "+app.name(),edit),new LinearLayout.LayoutParams(dp(a,48),dp(a,48)));list.addView(row);
     }
 }

@@ -10,6 +10,8 @@ import android.widget.*;
 
 public final class BubbleService extends Service {
     private HomeScreenMonitor homeMonitor;
+    private final android.content.SharedPreferences.OnSharedPreferenceChangeListener catalogListener=(prefs,key)->{if("hidden".equals(key)||"categories".equals(key))closePicker();};
+    @Override public void onCreate(){super.onCreate();getSharedPreferences("catalog",0).registerOnSharedPreferenceChangeListener(catalogListener);}
     private final Runnable visibilityTick=new Runnable(){public void run(){
         if(bubble!=null){boolean homeOnly=getSharedPreferences("settings",0).getBoolean("homeOnly",false);boolean visible;
             try{visible=!homeOnly||homeMonitor.isHome();}catch(Exception e){visible=!homeOnly;}
@@ -71,5 +73,5 @@ public final class BubbleService extends Service {
         }
         var lp=layout(Math.min(Ui.dp(this,340),getResources().getDisplayMetrics().widthPixels-Ui.dp(this,24)),Math.min(Ui.dp(this,520),getResources().getDisplayMetrics().heightPixels-Ui.dp(this,120)));lp.gravity=Gravity.CENTER;try{wm.addView(scroll,lp);panel=scroll;}catch(RuntimeException e){Ui.toast(this,"Could not open floating categories");}
     }
-    @Override public void onDestroy(){handler.removeCallbacksAndMessages(null);if(wm!=null){closePicker();if(bubble!=null)wm.removeView(bubble);}bubble=null;super.onDestroy();}
+    @Override public void onDestroy(){getSharedPreferences("catalog",0).unregisterOnSharedPreferenceChangeListener(catalogListener);handler.removeCallbacksAndMessages(null);if(wm!=null){closePicker();if(bubble!=null)wm.removeView(bubble);}bubble=null;super.onDestroy();}
 }

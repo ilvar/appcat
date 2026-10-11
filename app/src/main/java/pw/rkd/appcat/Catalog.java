@@ -59,18 +59,26 @@ public final class Catalog {
     public boolean assignAiIfUnchanged(App expected,String category) { synchronized(ASSIGN_LOCK) {
         try {
             JSONObject saved=new JSONObject(prefs.getString("app:"+expected.pkg(),"{}"));
-            if(saved.optLong("revision",0)!=expected.revision())return false;
+            if(isHidden(expected.pkg())||saved.optLong("revision",0)!=expected.revision())return false;
             assign(expected.pkg(),category,"AI");return true;
         }catch(JSONException e){throw new IllegalStateException(e);}
     }}
     public void resetApps() { synchronized(ASSIGN_LOCK) {
         Set<String> packages=new HashSet<>();
         for(String key:prefs.getAll().keySet())if(key.startsWith("app:"))packages.add(key.substring(4));
-        for(App app:scan())packages.add(app.pkg());
+        for(App app:scanAll())packages.add(app.pkg());
         for(String pkg:packages)assign(pkg,"","Reset");
     }}
+    public Set<String> hiddenPackages(){return new HashSet<>(prefs.getStringSet("hidden",Collections.emptySet()));}
+    public boolean isHidden(String pkg){return hiddenPackages().contains(pkg);}
+    public void setHidden(String pkg,boolean hidden){synchronized(ASSIGN_LOCK){
+        Set<String> packages=hiddenPackages();if(hidden)packages.add(pkg);else packages.remove(pkg);
+        prefs.edit().putStringSet("hidden",packages).apply();
+    }}
+    /** Visible apps are the shared source for lists, category counts, launchers and AI jobs. */
+    public List<App> scan(){List<App> apps=scanAll();Set<String> hidden=hiddenPackages();apps.removeIf(app->hidden.contains(app.pkg()));return apps;}
     @SuppressWarnings("deprecation")
-    public List<App> scan() {
+    public List<App> scanAll() {
         PackageManager pm=context.getPackageManager();
         List<ResolveInfo> entries=pm.queryIntentActivities(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER),0);
         Map<String,App> apps=new HashMap<>();

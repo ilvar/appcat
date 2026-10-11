@@ -23,5 +23,7 @@ public class BackupTest {
     @Test public void rejectsUnsupportedVersion() throws Exception {reject(fixture().put("version",2));}
     @Test public void rejectsMissingKeyRatherThanSilentlyErasingIt() throws Exception {JSONObject f=fixture();f.getJSONObject("settings").remove("apiKey");reject(f);}
     @Test public void popupThemeIsPortableAndOlderBackupsDefaultToSystem() throws Exception {assertEquals("system",Backup.parse(fixture().toString()).settings().getString("popupTheme"));JSONObject f=fixture();f.getJSONObject("settings").put("popupTheme","dark");assertEquals("dark",Backup.parse(f.toString()).settings().getString("popupTheme"));f.getJSONObject("settings").put("popupTheme","invalid");reject(f);}
+    @Test public void olderBackupsRestoreWithoutHiddenApps() throws Exception {assertTrue(Backup.parse(fixture().toString()).hidden().isEmpty());}
+    @Test public void rejectsMalformedHiddenPackages() throws Exception {reject(fixture().put("hiddenApps",new JSONArray().put("invalid package")));reject(fixture().put("hiddenApps",new JSONArray().put(42)));reject(fixture().put("hiddenApps",new JSONArray().put("com.app").put("com.app")));}
     private void reject(JSONObject fixture){try{Backup.parse(fixture.toString());fail("Accepted invalid backup");}catch(Exception expected){}}
 }
