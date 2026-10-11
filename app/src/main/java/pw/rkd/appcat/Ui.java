@@ -58,12 +58,12 @@ final class Ui {
                 int width=View.MeasureSpec.getSize(widthSpec);
                 if(width>0&&width!=lastWidth){
                     lastWidth=width;int columns=compact?4:Math.max(1,width/dp(context,80));
-                    // Clear old explicit column indices before reducing the column count.
-                    for(int i=0;i<getChildCount();i++){GridLayout.LayoutParams lp=(GridLayout.LayoutParams)getChildAt(i).getLayoutParams();lp.columnSpec=GridLayout.spec(GridLayout.UNDEFINED);lp.rowSpec=GridLayout.spec(GridLayout.UNDEFINED);}
-                    setColumnCount(columns);
-                    for(int i=0;i<getChildCount();i++){
+                    java.util.List<View> children=new java.util.ArrayList<>();for(int i=0;i<getChildCount();i++)children.add(getChildAt(i));
+                    // Remove the previous layout specs before reducing GridLayout's column count.
+                    removeAllViews();setColumnCount(columns);
+                    for(int i=0;i<children.size();i++){
                         GridLayout.LayoutParams lp=new GridLayout.LayoutParams(GridLayout.spec(i/columns),GridLayout.spec(i%columns));
-                        lp.width=width/columns;lp.height=dp(context,compact?96:112);getChildAt(i).setLayoutParams(lp);
+                        lp.width=width/columns;lp.height=dp(context,compact?96:112);addView(children.get(i),lp);
                     }
                 }
                 super.onMeasure(widthSpec,heightSpec);
