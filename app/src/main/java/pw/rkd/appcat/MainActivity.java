@@ -17,7 +17,7 @@ public final class MainActivity extends androidx.appcompat.app.AppCompatActivity
     private Button classify;
     private boolean allApps;
     private String search="";
-    private final Runnable listener=()->{if(status!=null){status.setText(Classifier.INSTANCE.status);classify.setText(Classifier.INSTANCE.running?"Stop categorisation":"Categorise missing apps");if(!Classifier.INSTANCE.running)render();}};
+    private final Runnable listener=()->{if(status!=null){status.setText(Classifier.INSTANCE.status);status.setVisibility(Classifier.INSTANCE.status.isEmpty()?android.view.View.GONE:android.view.View.VISIBLE);classify.setText(Classifier.INSTANCE.running?"Stop categorisation":"Categorise missing apps");if(!Classifier.INSTANCE.running)render();}};
     @Override public void onCreate(Bundle state){super.onCreate(state);catalog=new Catalog(this);if(state!=null){allApps=state.getBoolean("apps");search=state.getString("search","");}render();}
     @Override protected void onStart(){super.onStart();Classifier.INSTANCE.listen(listener);}
     @Override protected void onStop(){Classifier.INSTANCE.unlisten(listener);super.onStop();}
@@ -39,7 +39,7 @@ public final class MainActivity extends androidx.appcompat.app.AppCompatActivity
         com.google.android.material.textfield.TextInputLayout searchBox=new com.google.android.material.textfield.TextInputLayout(this,null,com.google.android.material.R.attr.textInputOutlinedStyle);searchBox.setHint("Search apps or categories");filter.setHint(null);searchBox.setEndIconMode(com.google.android.material.textfield.TextInputLayout.END_ICON_CLEAR_TEXT);searchBox.addView(filter,new LinearLayout.LayoutParams(-1,-2));header.addView(searchBox);
         classify=Ui.button(this,Classifier.INSTANCE.running?"Stop categorisation":"Categorise missing apps",()->{if(Classifier.INSTANCE.running)Classifier.INSTANCE.cancel();else{Classifier.INSTANCE.start(this);render();}});
         if(unknown>0||Classifier.INSTANCE.running)header.addView(classify);
-        status=Ui.text(this,Classifier.INSTANCE.status,14);if(!Classifier.INSTANCE.status.isEmpty())header.addView(status);
+        status=Ui.text(this,Classifier.INSTANCE.status,14);status.setVisibility(Classifier.INSTANCE.status.isEmpty()?android.view.View.GONE:android.view.View.VISIBLE);header.addView(status);
         if(getSharedPreferences("settings",0).getBoolean("homeOnly",false)&&!HomeScreenMonitor.hasAccess(this))header.addView(Ui.button(this,"Grant Usage Access for home-only button",()->startActivity(new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))));
         ScrollView scroll=new ScrollView(this);root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));content=Ui.column(this);scroll.addView(content);populate(apps,unknown);
         filter.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int st,int n,int a){}public void onTextChanged(CharSequence s,int st,int before,int count){search=s.toString();populate(apps,unknown);}public void afterTextChanged(Editable e){}});
@@ -53,9 +53,9 @@ public final class MainActivity extends androidx.appcompat.app.AppCompatActivity
                 if(!cat.name().toLowerCase(Locale.ROOT).contains(query))continue;
                 long count=apps.stream().filter(a->a.category().equals(cat.id())).count();
                 com.google.android.material.card.MaterialCardView card=new com.google.android.material.card.MaterialCardView(this);card.setRadius(Ui.dp(this,16));card.setCardElevation(0);content.addView(card,new LinearLayout.LayoutParams(-1,-2));((LinearLayout.LayoutParams)card.getLayoutParams()).bottomMargin=Ui.dp(this,8);
-                LinearLayout row=new LinearLayout(this);row.setGravity(android.view.Gravity.CENTER_VERTICAL);row.setPadding(Ui.dp(this,12),Ui.dp(this,8),Ui.dp(this,4),Ui.dp(this,8));card.addView(row);
+                LinearLayout row=new LinearLayout(this);row.setGravity(android.view.Gravity.CENTER_VERTICAL);row.setMinimumHeight(Ui.dp(this,72));row.setPadding(Ui.dp(this,12),Ui.dp(this,8),Ui.dp(this,4),Ui.dp(this,8));card.addView(row);
                 ImageView icon=new ImageView(this);icon.setImageDrawable(CategoryIcons.drawable(this,cat.icon()));row.addView(icon,new LinearLayout.LayoutParams(Ui.dp(this,40),Ui.dp(this,40)));
-                LinearLayout labels=Ui.column(this);labels.addView(Ui.text(this,cat.name(),18));labels.addView(Ui.text(this,count+" apps",13));row.addView(labels,new LinearLayout.LayoutParams(0,-2,1));
+                LinearLayout labels=new LinearLayout(this);labels.setOrientation(LinearLayout.VERTICAL);labels.setPadding(Ui.dp(this,16),0,Ui.dp(this,8),0);TextView title=Ui.text(this,cat.name(),18);title.setPadding(0,0,0,0);labels.addView(title);TextView subtitle=Ui.text(this,count+" apps",13);subtitle.setPadding(0,Ui.dp(this,4),0,0);labels.addView(subtitle);row.addView(labels,new LinearLayout.LayoutParams(0,-2,1));
                 row.setOnClickListener(v->startActivity(new Intent(this,CategoryActivity.class).putExtra("category",cat.id())));
                 ImageButton menu=Ui.iconButton(this,R.drawable.ic_more_vert,"Actions for "+cat.name(),()->{});row.addView(menu,new LinearLayout.LayoutParams(Ui.dp(this,48),Ui.dp(this,48)));
                 menu.setOnClickListener(v->{androidx.appcompat.widget.PopupMenu popup=new androidx.appcompat.widget.PopupMenu(this,menu);popup.getMenu().add(0,1,0,"Add to home screen").setEnabled(unknown==0);popup.getMenu().add(0,2,1,"Rename");popup.getMenu().add(0,3,2,"Change icon");popup.getMenu().add(0,4,3,"Reclassify category").setEnabled(count>0&&!Classifier.INSTANCE.running);popup.setOnMenuItemClickListener(item->{switch(item.getItemId()){case 1:Shortcuts.pin(this,cat);break;case 2:categoryDialog(cat.id(),null);break;case 3:iconDialog(cat);break;case 4:reclassify(cat.id());break;}return true;});popup.show();});

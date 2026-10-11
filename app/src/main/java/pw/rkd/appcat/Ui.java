@@ -62,10 +62,10 @@ final class Ui {
         }
     }
     static void appRow(Activity a,LinearLayout list,Catalog.App app,Runnable edit){
-        LinearLayout row=new LinearLayout(a);row.setGravity(Gravity.CENTER_VERTICAL);row.setPadding(0,Ui.dp(a,5),0,Ui.dp(a,5));
+        LinearLayout row=new LinearLayout(a);row.setGravity(Gravity.CENTER_VERTICAL);row.setMinimumHeight(dp(a,64));row.setPadding(0,Ui.dp(a,5),0,Ui.dp(a,5));
         ImageView icon=new ImageView(a);try{icon.setImageDrawable(a.getPackageManager().getApplicationIcon(app.pkg()));}catch(Exception ignored){}
         row.addView(icon,new LinearLayout.LayoutParams(dp(a,40),dp(a,40)));
-        LinearLayout labels=column(a);labels.addView(text(a,app.name(),16));labels.addView(text(a,new Catalog(a).categoryName(app.category())+" · "+app.source(),12));
+        LinearLayout labels=new LinearLayout(a);labels.setOrientation(LinearLayout.VERTICAL);labels.setPadding(dp(a,16),0,dp(a,8),0);TextView name=text(a,app.name(),16);name.setPadding(0,0,0,0);labels.addView(name);TextView category=text(a,new Catalog(a).categoryName(app.category())+" · "+app.source(),12);category.setPadding(0,dp(a,4),0,0);labels.addView(category);
         row.addView(labels,new LinearLayout.LayoutParams(0,-2,1));row.setOnClickListener(v->launch(a,app.pkg()));row.setOnLongClickListener(v->{if(edit!=null)edit.run();return true;});
         if(edit!=null)row.addView(iconButton(a,R.drawable.ic_more_vert,"Change category for "+app.name(),edit),new LinearLayout.LayoutParams(dp(a,48),dp(a,48)));list.addView(row);
     }
