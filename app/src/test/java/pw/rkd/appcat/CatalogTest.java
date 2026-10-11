@@ -37,7 +37,8 @@ public class CatalogTest {
         context.getSharedPreferences("secrets",0).edit().clear().commit();context.getSharedPreferences("settings",0).edit().clear().putString("model","custom/model").putBoolean("homeOnly",true).commit();
         String custom=catalog.saveCategory(null,"Personal");catalog.saveIcon(custom,"star");catalog.assign("test.finance",custom,"Manual");catalog.assign("com.uninstalled.app","","Reset");
         Backup.Data backup=Backup.parse(Backup.export(context));catalog.assign("test.finance","c7","AI");catalog.saveCategory(null,"Remove on import");context.getSharedPreferences("settings",0).edit().putString("model","changed").commit();
-        Backup.apply(context,backup);Catalog restored=new Catalog(context);assertEquals(custom,restored.scan().get(0).category());assertEquals("Manual",restored.scan().get(0).source());assertEquals("star",restored.categories().stream().filter(c->c.id().equals(custom)).findFirst().get().icon());assertEquals(18,restored.categories().size());
+        context.getSharedPreferences("secrets",0).edit().putString("key","unreadable-old-key").putString("iv","invalid").commit();
+        Backup.apply(context,backup);assertEquals("",KeyStore.read(context));Catalog restored=new Catalog(context);assertEquals(custom,restored.scan().get(0).category());assertEquals("Manual",restored.scan().get(0).source());assertEquals("star",restored.categories().stream().filter(c->c.id().equals(custom)).findFirst().get().icon());assertEquals(18,restored.categories().size());
         assertEquals("custom/model",context.getSharedPreferences("settings",0).getString("model",""));assertTrue(context.getSharedPreferences("settings",0).getBoolean("homeOnly",false));assertEquals("Reset",Backup.parse(Backup.export(context)).mappings().getJSONObject("com.uninstalled.app").getString("source"));
     }
     @Test public void missingDefaultCategoryAfterImportDoesNotBreakAndroidScan() {

@@ -57,7 +57,8 @@ final class Backup {
     static void apply(Context context,Data data) throws Exception {
         if(Classifier.INSTANCE.running)throw new IllegalStateException("Stop categorisation before importing");
         var settings=context.getSharedPreferences("settings",0);var catalog=context.getSharedPreferences("catalog",0);
-        Map<String,?> oldSettings=settings.getAll(),oldCatalog=catalog.getAll();String oldKey=KeyStore.read(context);
+        var secrets=context.getSharedPreferences("secrets",0);
+        Map<String,?> oldSettings=settings.getAll(),oldCatalog=catalog.getAll(),oldSecrets=secrets.getAll();
         try {
             KeyStore.save(context,data.settings.getString("apiKey"));
             SharedPreferences.Editor editor=catalog.edit().clear().putString("categories",data.categories.toString());
@@ -67,7 +68,7 @@ final class Backup {
             for(String key:List.of("playLookup","bubble","homeOnly"))editor.putBoolean(key,data.settings.getBoolean(key));
             for(String key:List.of("bubbleX","bubbleY")){editor.remove(key);if(data.settings.has(key))editor.putInt(key,data.settings.getInt(key));}
             if(!editor.commit())throw new IllegalStateException("Could not save settings");
-        }catch(Exception error){restore(catalog,oldCatalog);restore(settings,oldSettings);try{KeyStore.save(context,oldKey);}catch(Exception ignored){}throw error;}
+        }catch(Exception error){restore(catalog,oldCatalog);restore(settings,oldSettings);restore(secrets,oldSecrets);throw error;}
     }
     private static void restore(SharedPreferences prefs,Map<String,?> values){var editor=prefs.edit().clear();for(var item:values.entrySet()){Object v=item.getValue();if(v instanceof String)editor.putString(item.getKey(),(String)v);else if(v instanceof Boolean)editor.putBoolean(item.getKey(),(Boolean)v);else if(v instanceof Integer)editor.putInt(item.getKey(),(Integer)v);}editor.commit();}
 }
