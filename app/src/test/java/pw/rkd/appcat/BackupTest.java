@@ -22,5 +22,6 @@ public class BackupTest {
     @Test public void rejectsWrongTypes() throws Exception {JSONObject f=fixture();f.getJSONObject("settings").put("homeOnly","true");reject(f);}
     @Test public void rejectsUnsupportedVersion() throws Exception {reject(fixture().put("version",2));}
     @Test public void rejectsMissingKeyRatherThanSilentlyErasingIt() throws Exception {JSONObject f=fixture();f.getJSONObject("settings").remove("apiKey");reject(f);}
+    @Test public void popupThemeIsPortableAndOlderBackupsDefaultToSystem() throws Exception {assertEquals("system",Backup.parse(fixture().toString()).settings().getString("popupTheme"));JSONObject f=fixture();f.getJSONObject("settings").put("popupTheme","dark");assertEquals("dark",Backup.parse(f.toString()).settings().getString("popupTheme"));f.getJSONObject("settings").put("popupTheme","invalid");reject(f);}
     private void reject(JSONObject fixture){try{Backup.parse(fixture.toString());fail("Accepted invalid backup");}catch(Exception expected){}}
 }

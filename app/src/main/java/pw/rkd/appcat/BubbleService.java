@@ -58,18 +58,18 @@ public final class BubbleService extends Service {
     private void clamp(){params.x=Math.max(0,Math.min(params.x,getResources().getDisplayMetrics().widthPixels-params.width));params.y=Math.max(Ui.dp(this,32),Math.min(params.y,getResources().getDisplayMetrics().heightPixels-Ui.dp(this,100)));}
     private void closePicker(){if(panel!=null){wm.removeView(panel);panel=null;}}
     private void openPicker(String category){
-        closePicker();Catalog catalog=new Catalog(this);var apps=catalog.scan();LinearLayout card=Ui.column(this);card.setBackground(Ui.rounded(com.google.android.material.color.MaterialColors.getColor(this,com.google.android.material.R.attr.colorSurface,Color.WHITE),Ui.dp(this,18)));ScrollView scroll=new ScrollView(this);scroll.addView(card);panel=scroll;
-        Ui.pickerHeader(this,card,category==null?"Categories":catalog.categoryName(category),this::closePicker);
+        closePicker();Context popup=PopupTheme.context(this);Catalog catalog=new Catalog(this);var apps=catalog.scan();LinearLayout card=Ui.column(popup);card.setBackground(Ui.rounded(com.google.android.material.color.MaterialColors.getColor(popup,com.google.android.material.R.attr.colorSurface,Color.WHITE),Ui.dp(this,18)));ScrollView scroll=new ScrollView(popup);scroll.addView(card);
+        Ui.pickerHeader(popup,card,category==null?"Categories":catalog.categoryName(category),this::closePicker);
         if(category==null){
-            Ui.categoryGrid(this,card,catalog,apps,this::openPicker);
+            Ui.categoryGrid(popup,card,catalog,apps,this::openPicker);
         }else{
-            card.addView(Ui.button(this,"‹ Categories",()->openPicker(null)));
-            if(apps.stream().noneMatch(a->a.category().equals(category)))card.addView(Ui.text(this,"No apps in this category yet",16));
+            card.addView(Ui.button(popup,"‹ Categories",()->openPicker(null)));
+            if(apps.stream().noneMatch(a->a.category().equals(category)))card.addView(Ui.text(popup,"No apps in this category yet",12));
             java.util.List<Catalog.App> members=new java.util.ArrayList<>();
             for(var app:apps)if(app.category().equals(category))members.add(app);
-            Ui.appGrid(this,card,members,app->{closePicker();Ui.launch(this,app.pkg());});
+            Ui.appGrid(popup,card,members,app->{closePicker();Ui.launch(this,app.pkg());});
         }
-        var lp=layout(Math.min(Ui.dp(this,340),getResources().getDisplayMetrics().widthPixels-Ui.dp(this,24)),Math.min(Ui.dp(this,520),getResources().getDisplayMetrics().heightPixels-Ui.dp(this,120)));lp.gravity=Gravity.CENTER;wm.addView(panel,lp);
+        var lp=layout(Math.min(Ui.dp(this,340),getResources().getDisplayMetrics().widthPixels-Ui.dp(this,24)),Math.min(Ui.dp(this,520),getResources().getDisplayMetrics().heightPixels-Ui.dp(this,120)));lp.gravity=Gravity.CENTER;try{wm.addView(scroll,lp);panel=scroll;}catch(RuntimeException e){Ui.toast(this,"Could not open floating categories");}
     }
     @Override public void onDestroy(){handler.removeCallbacksAndMessages(null);if(wm!=null){closePicker();if(bubble!=null)wm.removeView(bubble);}bubble=null;super.onDestroy();}
 }

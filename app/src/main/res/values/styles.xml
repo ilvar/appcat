@@ -8,4 +8,8 @@
     <item name="windowActionBar">false</item><item name="windowNoTitle">true</item>
     <item name="colorPrimary">#536DFE</item><item name="android:windowCloseOnTouchOutside">true</item>
 </style>
+<style name="PopupLight" parent="Theme.Material3.Light.NoActionBar"><item name="colorPrimary">#536DFE</item></style>
+<style name="PopupDark" parent="Theme.Material3.Dark.NoActionBar"><item name="colorPrimary">#A6B3FF</item></style>
+<style name="PickerLight" parent="Theme.Material3.Light.Dialog"><item name="windowActionBar">false</item><item name="windowNoTitle">true</item><item name="colorPrimary">#536DFE</item><item name="android:windowCloseOnTouchOutside">true</item></style>
+<style name="PickerDark" parent="Theme.Material3.Dark.Dialog"><item name="windowActionBar">false</item><item name="windowNoTitle">true</item><item name="colorPrimary">#A6B3FF</item><item name="android:windowCloseOnTouchOutside">true</item></style>
 </resources>

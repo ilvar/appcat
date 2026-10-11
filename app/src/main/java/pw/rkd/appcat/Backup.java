@@ -14,7 +14,7 @@ final class Backup {
         var prefs=context.getSharedPreferences("settings",0);
         JSONObject settings=new JSONObject().put("apiKey",KeyStore.read(context))
                 .put("url",prefs.getString("url",SystemOne.DEFAULT_URL)).put("model",prefs.getString("model",SystemOne.DEFAULT_MODEL))
-                .put("playLookup",prefs.getBoolean("playLookup",true)).put("bubble",prefs.getBoolean("bubble",false)).put("homeOnly",prefs.getBoolean("homeOnly",false));
+                .put("popupTheme",prefs.getString("popupTheme","system")).put("playLookup",prefs.getBoolean("playLookup",true)).put("bubble",prefs.getBoolean("bubble",false)).put("homeOnly",prefs.getBoolean("homeOnly",false));
         for(String key:List.of("bubbleX","bubbleY"))if(prefs.contains(key))settings.put(key,prefs.getInt(key,0));
         JSONArray categories=new JSONArray();for(var c:catalog.categories())categories.put(Catalog.json("id",c.id(),"name",c.name(),"icon",c.icon()));
         JSONObject mappings=new JSONObject();for(var entry:context.getSharedPreferences("catalog",0).getAll().entrySet())if(entry.getKey().startsWith("app:")){
@@ -29,6 +29,7 @@ final class Backup {
         if(!"appcat".equals(root.getString("format"))||!(root.get("version") instanceof Number)||root.getDouble("version")!=1)throw new IllegalArgumentException("Unsupported AppCat backup format/version");
         JSONObject input=root.getJSONObject("settings"), settings=new JSONObject();
         for(String key:List.of("apiKey","url","model"))settings.put(key,string(input,key));
+        String theme=input.has("popupTheme")?string(input,"popupTheme"):"system";if(PopupTheme.index(theme)<0)throw new IllegalArgumentException("Unknown popup theme");settings.put("popupTheme",theme);
         SystemOne.validateUrl(settings.getString("url"));
         if(settings.getString("model").trim().isEmpty())throw new IllegalArgumentException("Model must not be empty");
         for(String key:List.of("playLookup","bubble","homeOnly")){Object value=input.get(key);if(!(value instanceof Boolean))throw new IllegalArgumentException("Invalid setting: "+key);settings.put(key,value);}
@@ -64,7 +65,7 @@ final class Backup {
             SharedPreferences.Editor editor=catalog.edit().clear().putString("categories",data.categories.toString());
             for(Iterator<String> keys=data.mappings.keys();keys.hasNext();){String pkg=keys.next();editor.putString("app:"+pkg,data.mappings.getJSONObject(pkg).toString());}
             if(!editor.commit())throw new IllegalStateException("Could not save app mappings");
-            editor=settings.edit();for(String key:List.of("url","model"))editor.putString(key,data.settings.getString(key));
+            editor=settings.edit();for(String key:List.of("url","model","popupTheme"))editor.putString(key,data.settings.getString(key));
             for(String key:List.of("playLookup","bubble","homeOnly"))editor.putBoolean(key,data.settings.getBoolean(key));
             for(String key:List.of("bubbleX","bubbleY")){editor.remove(key);if(data.settings.has(key))editor.putInt(key,data.settings.getInt(key));}
             if(!editor.commit())throw new IllegalStateException("Could not save settings");

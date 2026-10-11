@@ -19,13 +19,13 @@ public final class MainActivity extends androidx.appcompat.app.AppCompatActivity
     private boolean allApps;
     private String search="";
     private final Runnable listener=()->{if(status!=null){status.setText(Classifier.INSTANCE.status);status.setVisibility(Classifier.INSTANCE.status.isEmpty()?android.view.View.GONE:android.view.View.VISIBLE);classify.setText(Classifier.INSTANCE.running?"Stop categorisation":"Categorise missing apps");if(!Classifier.INSTANCE.running)render();}};
-    @Override public void onCreate(Bundle state){super.onCreate(state);catalog=new Catalog(this);if(state!=null){allApps=state.getBoolean("apps");search=state.getString("search","");}render();}
+    @Override public void onCreate(Bundle state){super.onCreate(state);androidx.core.view.WindowCompat.setDecorFitsSystemWindows(getWindow(),false);catalog=new Catalog(this);if(state!=null){allApps=state.getBoolean("apps");search=state.getString("search","");}render();}
     @Override protected void onStart(){super.onStart();Classifier.INSTANCE.listen(listener);}
     @Override protected void onStop(){Classifier.INSTANCE.unlisten(listener);super.onStop();}
     @Override protected void onSaveInstanceState(Bundle b){b.putBoolean("apps",allApps);b.putString("search",search);super.onSaveInstanceState(b);}
     @Override protected void onResume(){super.onResume();render();var p=getSharedPreferences("settings",0);if(p.getBoolean("bubble",false)&&Settings.canDrawOverlays(this))startBubble();}
     private void render(){
-        LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);if(Build.VERSION.SDK_INT>=30)Ui.insets(root);else root.setFitsSystemWindows(true);setContentView(root);
+        LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);Ui.insets(root);setContentView(root);
         com.google.android.material.appbar.MaterialToolbar toolbar=new com.google.android.material.appbar.MaterialToolbar(this);toolbar.setTitle("AppCat");root.addView(toolbar);
         toolbar.getMenu().add(0,1,0,"New category").setIcon(R.drawable.ic_add).setShowAsAction(android.view.MenuItem.SHOW_AS_ACTION_ALWAYS);
         toolbar.getMenu().add(0,2,1,"Settings").setIcon(R.drawable.ic_settings).setShowAsAction(android.view.MenuItem.SHOW_AS_ACTION_ALWAYS);
@@ -109,6 +109,7 @@ public final class MainActivity extends androidx.appcompat.app.AppCompatActivity
         com.google.android.material.materialswitch.MaterialSwitch homeOnly=new com.google.android.material.materialswitch.MaterialSwitch(this);homeOnly.setText("Show only on the home screen");homeOnly.setChecked(p.getBoolean("homeOnly",false));form.addView(homeOnly);
         form.addView(Ui.text(this,"Requires Usage Access to identify your default launcher. Foreground app events stay on this device. Visibility can take about a second to update.",14));
         if(!HomeScreenMonitor.hasAccess(this))form.addView(Ui.button(this,"Grant Usage Access",()->startActivity(new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))));
+        form.addView(Ui.text(this,"Popup theme",14));Spinner popupTheme=new Spinner(this);popupTheme.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,new String[]{"Follow system","Light","Dark"}));popupTheme.setSelection(PopupTheme.index(p.getString("popupTheme","system")));form.addView(popupTheme);
         com.google.android.material.materialswitch.MaterialSwitch bubble=new com.google.android.material.materialswitch.MaterialSwitch(this);bubble.setText("Floating category button");bubble.setChecked(p.getBoolean("bubble",false));form.addView(bubble);
         form.addView(Ui.text(this,"Drag the circle to position it. Tap or long press to open categories. Enabling it requests Android’s “display over other apps” permission.",14));
         androidx.appcompat.app.AlertDialog dialog=new com.google.android.material.dialog.MaterialAlertDialogBuilder(this).setTitle("Settings").setView(scroll).setNegativeButton("Cancel",null).setPositiveButton("Save",null).create();
@@ -116,7 +117,7 @@ public final class MainActivity extends androidx.appcompat.app.AppCompatActivity
         dialog.setOnShowListener(d->dialog.getButton(-1).setOnClickListener(v->{
             try{
                 SystemOne.validateUrl(url.getText().toString().trim());if(model.getText().toString().trim().isEmpty())throw new IllegalArgumentException("Enter a System One model");
-                KeyStore.save(this,key.getText().toString().trim());p.edit().putString("url",url.getText().toString().trim()).putString("model",model.getText().toString().trim()).putBoolean("bubble",bubble.isChecked()).putBoolean("playLookup",lookup.isChecked()).putBoolean("homeOnly",homeOnly.isChecked()).apply();
+                KeyStore.save(this,key.getText().toString().trim());p.edit().putString("url",url.getText().toString().trim()).putString("model",model.getText().toString().trim()).putBoolean("bubble",bubble.isChecked()).putBoolean("playLookup",lookup.isChecked()).putBoolean("homeOnly",homeOnly.isChecked()).putString("popupTheme",PopupTheme.VALUES[popupTheme.getSelectedItemPosition()]).apply();
                 dialog.dismiss();
                 if(bubble.isChecked())enableBubble();else stopService(new Intent(this,BubbleService.class));
             }catch(Exception e){Ui.toast(this,e.getMessage()==null?"Could not save settings":e.getMessage());}
