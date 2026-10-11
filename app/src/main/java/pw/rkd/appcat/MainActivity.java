@@ -11,6 +11,7 @@ import android.widget.*;
 import java.util.*;
 
 public final class MainActivity extends androidx.appcompat.app.AppCompatActivity {
+    private androidx.appcompat.app.AlertDialog settingsDialog;
     private Catalog catalog;
     private LinearLayout content;
     private TextView status;
@@ -101,6 +102,9 @@ public final class MainActivity extends androidx.appcompat.app.AppCompatActivity
         form.addView(Ui.text(this,"System One model",14));EditText model=Ui.input(this,"Model",p.getString("model",SystemOne.DEFAULT_MODEL));form.addView(model);
         com.google.android.material.materialswitch.MaterialSwitch lookup=new com.google.android.material.materialswitch.MaterialSwitch(this);lookup.setText("Look up descriptions on Google Play");lookup.setChecked(p.getBoolean("playLookup",true));form.addView(lookup);
         form.addView(Ui.text(this,"Uses each app’s package ID to fetch its public listing. Failed lookups fall back to available local information. Descriptions are cached for 7 days.",14));
+        form.addView(Ui.text(this,"JSON backup includes settings, category names/icons, app mappings and your API key in plaintext. Keep exported files private. Save settings before exporting; unsaved edits are not included.",14));
+        form.addView(Ui.button(this,"Export JSON backup",()->{dialogDismissSettings();chooseBackup(false);}));
+        form.addView(Ui.button(this,"Import JSON backup",()->{dialogDismissSettings();chooseBackup(true);}));
         Button reset=Ui.button(this,"Reset all app assignments",this::resetApps);reset.setEnabled(!Classifier.INSTANCE.running);form.addView(reset);
         com.google.android.material.materialswitch.MaterialSwitch homeOnly=new com.google.android.material.materialswitch.MaterialSwitch(this);homeOnly.setText("Show only on the home screen");homeOnly.setChecked(p.getBoolean("homeOnly",false));form.addView(homeOnly);
         form.addView(Ui.text(this,"Requires Usage Access to identify your default launcher. Foreground app events stay on this device. Visibility can take about a second to update.",14));
@@ -108,6 +112,7 @@ public final class MainActivity extends androidx.appcompat.app.AppCompatActivity
         com.google.android.material.materialswitch.MaterialSwitch bubble=new com.google.android.material.materialswitch.MaterialSwitch(this);bubble.setText("Floating category button");bubble.setChecked(p.getBoolean("bubble",false));form.addView(bubble);
         form.addView(Ui.text(this,"Drag the circle to position it. Tap or long press to open categories. Enabling it requests Android’s “display over other apps” permission.",14));
         androidx.appcompat.app.AlertDialog dialog=new com.google.android.material.dialog.MaterialAlertDialogBuilder(this).setTitle("Settings").setView(scroll).setNegativeButton("Cancel",null).setPositiveButton("Save",null).create();
+        settingsDialog=dialog;
         dialog.setOnShowListener(d->dialog.getButton(-1).setOnClickListener(v->{
             try{
                 SystemOne.validateUrl(url.getText().toString().trim());if(model.getText().toString().trim().isEmpty())throw new IllegalArgumentException("Enter a System One model");
@@ -117,7 +122,38 @@ public final class MainActivity extends androidx.appcompat.app.AppCompatActivity
             }catch(Exception e){Ui.toast(this,e.getMessage()==null?"Could not save settings":e.getMessage());}
         }));dialog.show();
     }
-    @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if((request==2&&Settings.canDrawOverlays(this))||(request==3&&HomeScreenMonitor.hasAccess(this)))enableBubble();}
+    private void dialogDismissSettings(){if(settingsDialog!=null)settingsDialog.dismiss();}
+    private void chooseBackup(boolean importing){
+        if(Classifier.INSTANCE.running){Ui.toast(this,"Stop categorisation before importing or exporting");return;}
+        Intent intent=new Intent(importing?Intent.ACTION_OPEN_DOCUMENT:Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType(importing?"*/*":"application/json");
+        if(!importing)intent.putExtra(Intent.EXTRA_TITLE,"appcat-backup.json");
+        try{startActivityForResult(intent,importing?5:4);}catch(ActivityNotFoundException e){Ui.toast(this,"No document picker available");}
+    }
+    private void backupResult(boolean importing,Uri uri){
+        if(Classifier.INSTANCE.running){Ui.toast(this,"Stop categorisation before importing or exporting");return;}
+        new Thread(()->{
+            try{
+                if(importing){
+                    String json;
+                    try(java.io.InputStream stream=getContentResolver().openInputStream(uri)){
+                        if(stream==null)throw new java.io.IOException("Could not open backup");
+                        java.io.ByteArrayOutputStream bytes=new java.io.ByteArrayOutputStream();byte[] buffer=new byte[8192];int count;
+                        while((count=stream.read(buffer))!=-1){if(bytes.size()+count>Backup.MAX_BYTES)throw new java.io.IOException("Backup exceeds 5 MB");bytes.write(buffer,0,count);}
+                        json=bytes.toString(java.nio.charset.StandardCharsets.UTF_8.name());
+                    }
+                    Backup.Data backup=Backup.parse(json);
+                    runOnUiThread(()->{if(isFinishing()||isDestroyed())return;new com.google.android.material.dialog.MaterialAlertDialogBuilder(this).setTitle("Import backup?")
+                        .setMessage("Replace all saved settings, categories, icons and app assignments with "+backup.categories().length()+" categories and "+backup.mappings().length()+" mappings? The API key will also be replaced. Android permissions and home-screen placement are not restored.")
+                        .setNegativeButton("Cancel",null).setPositiveButton("Import",(d,n)->{try{Backup.apply(this,backup);stopService(new Intent(this,BubbleService.class));Shortcuts.refresh(this);Classifier.INSTANCE.status="Backup imported";render();if(getSharedPreferences("settings",0).getBoolean("bubble",false))enableBubble();}catch(Exception e){Ui.toast(this,"Import failed: "+e.getMessage());}}).show();});
+                }else{
+                    String json=Backup.export(this);
+                    try(java.io.OutputStream stream=getContentResolver().openOutputStream(uri,"wt")){if(stream==null)throw new java.io.IOException("Could not open export file");stream.write(json.getBytes(java.nio.charset.StandardCharsets.UTF_8));}
+                    runOnUiThread(()->Ui.toast(this,"Backup exported; includes your API key"));
+                }
+            }catch(Exception e){runOnUiThread(()->Ui.toast(this,(importing?"Import failed. Check the backup format and file size.":"Export failed. Check file access and the stored API key.")));}
+        },"appcat-backup").start();
+    }
+    @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if((request==4||request==5)&&result==RESULT_OK&&data!=null&&data.getData()!=null){backupResult(request==5,data.getData());return;}if((request==2&&Settings.canDrawOverlays(this))||(request==3&&HomeScreenMonitor.hasAccess(this)))enableBubble();}
     private void enableBubble(){
         if(!Settings.canDrawOverlays(this)){startActivityForResult(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,Uri.parse("package:"+getPackageName())),2);return;}
         if(getSharedPreferences("settings",0).getBoolean("homeOnly",false)&&!HomeScreenMonitor.hasAccess(this)){startActivityForResult(new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS),3);return;}

@@ -21,7 +21,10 @@ final class Shortcuts {
     }
     static void refresh(Context c){
         ShortcutManager manager=c.getSystemService(ShortcutManager.class);List<ShortcutInfo> updates=new ArrayList<>();Set<String> pinned=new HashSet<>();for(var i:manager.getPinnedShortcuts())pinned.add(i.getId());
-        for(var cat:new Catalog(c).categories())if(pinned.contains("category:"+cat.id()))updates.add(info(c,cat));
+        Set<String> valid=new HashSet<>();for(var cat:new Catalog(c).categories()){String id="category:"+cat.id();valid.add(id);if(pinned.contains(id))updates.add(info(c,cat));}
+        List<String> removed=new ArrayList<>(),restored=new ArrayList<>();for(String id:pinned)if(id.startsWith("category:")){if(valid.contains(id))restored.add(id);else removed.add(id);}
+        if(!removed.isEmpty())manager.disableShortcuts(removed,"Category is no longer in AppCat");
+        if(!restored.isEmpty())manager.enableShortcuts(restored);
         if(!updates.isEmpty())manager.updateShortcuts(updates);
     }
 }

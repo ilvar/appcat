@@ -48,3 +48,9 @@ API references: [System One](https://openrouter.ai/docs/guides/community/typesaf
 ## Icon credits
 
 Bundled vectors are Google Material Icons Rounded, converted from the official [material-design-icons](https://github.com/google/material-design-icons) source. Apache 2.0 license: `licenses/material-icons-LICENSE.txt`. No external font or runtime icon download is required.
+
+### JSON backups
+
+Settings → Export JSON backup writes a portable, versioned JSON file through Android’s document picker. It includes the endpoint/model, API key, lookup and floating-button preferences/position, category names/icons and all saved package mappings (including explicit unassigned/reset records and apps no longer installed). Save pending settings edits before exporting.
+
+**The exported API key is plaintext. Keep the file private.** Import re-encrypts the key with Android Keystore on the destination device. Settings → Import JSON backup validates the complete file and asks before replacing the saved settings, categories and mappings. Stop categorisation before either operation. Backups are limited to 5 MB. Android permissions, description caches and launcher shortcut placement are not transferred; existing shortcuts are refreshed or disabled if their category was removed.

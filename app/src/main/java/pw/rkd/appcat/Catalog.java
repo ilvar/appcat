@@ -81,6 +81,7 @@ public final class Catalog {
             try { JSONObject saved=new JSONObject(prefs.getString("app:"+ai.packageName,"{}")); cat=saved.optString("category"); source=saved.optString("source","Uncategorised");revision=saved.optLong("revision",0); }catch(JSONException ignored){}
             if(cat.isEmpty() && !prefs.contains("app:"+ai.packageName)) {
                 cat=androidCategory(ai.category);
+                if(!hasCategory(cat))cat="";
                 if(!cat.isEmpty()) { source="Android"; assign(ai.packageName,cat,source); revision=1; }
             }
             if(!cat.isEmpty() && !hasCategory(cat)) { cat=""; source="Uncategorised"; }
