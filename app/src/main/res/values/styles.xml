@@ -1,0 +1,4 @@
+<resources>
+<style name="AppTheme" parent="android:style/Theme.Material.Light.NoActionBar"><item name="android:fontFamily">sans</item><item name="android:colorAccent">#536DFE</item><item name="android:windowLightStatusBar">true</item><item name="android:windowActionModeOverlay">true</item><item name="android:windowBackground">#F5F6FA</item></style>
+<style name="PickerTheme" parent="android:style/Theme.Material.Light.Dialog.NoActionBar"><item name="android:colorAccent">#536DFE</item><item name="android:windowCloseOnTouchOutside">true</item></style>
+</resources>
