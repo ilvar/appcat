@@ -120,7 +120,7 @@ public final class MainActivity extends androidx.appcompat.app.AppCompatActivity
         form.addView(Ui.text(this,"System One model",14));EditText model=Ui.input(this,"Model",p.getString("model",SystemOne.DEFAULT_MODEL));form.addView(model);
         com.google.android.material.materialswitch.MaterialSwitch lookup=new com.google.android.material.materialswitch.MaterialSwitch(this);lookup.setText("Look up descriptions on Google Play");lookup.setChecked(p.getBoolean("playLookup",true));form.addView(lookup);
         form.addView(Ui.text(this,"Uses each app’s package ID to fetch its public listing. Failed lookups fall back to available local information. Descriptions are cached for 7 days.",14));
-        form.addView(Ui.text(this,"JSON backup includes settings, category names/icons, app mappings and your API key in plaintext. Keep exported files private. Save settings before exporting; unsaved edits are not included.",14));
+        form.addView(Ui.text(this,"JSON backup includes settings, category names/icons, app mappings, hidden apps and your API key in plaintext. Keep exported files private. Save settings before exporting; unsaved edits are not included.",14));
         form.addView(Ui.button(this,"Export JSON backup",()->{dialogDismissSettings();chooseBackup(false);}));
         form.addView(Ui.button(this,"Import JSON backup",()->{dialogDismissSettings();chooseBackup(true);}));
         Button reset=Ui.button(this,"Reset all app assignments",this::resetApps);reset.setEnabled(!Classifier.INSTANCE.running);form.addView(reset);
@@ -162,7 +162,7 @@ public final class MainActivity extends androidx.appcompat.app.AppCompatActivity
                     }
                     Backup.Data backup=Backup.parse(json);
                     runOnUiThread(()->{if(isFinishing()||isDestroyed())return;new com.google.android.material.dialog.MaterialAlertDialogBuilder(this).setTitle("Import backup?")
-                        .setMessage("Replace all saved settings, categories, icons and app assignments with "+backup.categories().length()+" categories and "+backup.mappings().length()+" mappings? The API key will also be replaced. Android permissions and home-screen placement are not restored.")
+                        .setMessage("Replace all saved settings, categories, icons, hidden apps and app assignments with "+backup.categories().length()+" categories and "+backup.mappings().length()+" mappings and "+backup.hidden().size()+" hidden apps? The API key will also be replaced. Android permissions and home-screen placement are not restored.")
                         .setNegativeButton("Cancel",null).setPositiveButton("Import",(d,n)->{try{Backup.apply(this,backup);stopService(new Intent(this,BubbleService.class));Shortcuts.refresh(this);Classifier.INSTANCE.status="Backup imported";render();if(getSharedPreferences("settings",0).getBoolean("bubble",false))enableBubble();}catch(Exception e){Ui.toast(this,"Import failed: "+e.getMessage());}}).show();});
                 }else{
                     String json=Backup.export(this);
