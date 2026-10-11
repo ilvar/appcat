@@ -51,10 +51,11 @@ public final class BubbleService extends Service {
         closePicker();Catalog catalog=new Catalog(this);var apps=catalog.scan();LinearLayout card=Ui.column(this);card.setBackground(Ui.rounded(Color.WHITE,Ui.dp(this,18)));ScrollView scroll=new ScrollView(this);scroll.addView(card);panel=scroll;
         card.addView(Ui.text(this,category==null?"Categories":catalog.categoryName(category),22));card.addView(Ui.button(this,"Close",this::closePicker));
         if(category==null){
-            for(var cat:catalog.categories()){long n=apps.stream().filter(a->a.category().equals(cat.id())).count();if(n>0)card.addView(Ui.button(this,cat.name()+" · "+n,()->openPicker(cat.id())));}
+            for(var cat:catalog.categories()){long n=apps.stream().filter(a->a.category().equals(cat.id())).count();card.addView(Ui.button(this,cat.name()+" · "+n,()->openPicker(cat.id())));}
             long n=apps.stream().filter(a->a.category().isEmpty()).count();if(n>0)card.addView(Ui.button(this,"Uncategorised · "+n,()->openPicker("")));
         }else{
             card.addView(Ui.button(this,"‹ Categories",()->openPicker(null)));
+            if(apps.stream().noneMatch(a->a.category().equals(category)))card.addView(Ui.text(this,"No apps in this category yet",16));
             for(var app:apps)if(app.category().equals(category))card.addView(Ui.button(this,app.name(),()->{closePicker();Ui.launch(this,app.pkg());}));
         }
         var lp=layout(Math.min(Ui.dp(this,340),getResources().getDisplayMetrics().widthPixels-Ui.dp(this,24)),Math.min(Ui.dp(this,520),getResources().getDisplayMetrics().heightPixels-Ui.dp(this,120)));lp.gravity=Gravity.CENTER;wm.addView(panel,lp);

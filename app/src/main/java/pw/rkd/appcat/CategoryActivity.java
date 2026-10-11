@@ -10,7 +10,7 @@ public final class CategoryActivity extends Activity {
         Catalog catalog=new Catalog(this);var apps=catalog.scan();ScrollView scroll=new ScrollView(this);LinearLayout list=Ui.column(this);scroll.addView(list);setContentView(scroll);
         list.addView(Ui.text(this,id==null?"Categories":catalog.categoryName(id),24));
         if(id==null){
-            for(var cat:catalog.categories()){long count=apps.stream().filter(a->a.category().equals(cat.id())).count();if(count>0)list.addView(Ui.button(this,cat.name()+"  ·  "+count,()->show(cat.id())));}
+            for(var cat:catalog.categories()){long count=apps.stream().filter(a->a.category().equals(cat.id())).count();list.addView(Ui.button(this,cat.name()+"  ·  "+count,()->show(cat.id())));}
             long unknown=apps.stream().filter(a->a.category().isEmpty()).count();if(unknown>0)list.addView(Ui.button(this,"Uncategorised  ·  "+unknown,()->show("")));
             if(apps.isEmpty())list.addView(Ui.text(this,"No launchable apps found",16));
         } else {
